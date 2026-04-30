@@ -8,7 +8,7 @@ import { configDotenv } from "dotenv";
 import open from "open";
 import AuthAPI from "./api";    
 import { LoginRequest } from "./types/auth.types";
-import { TokenStore } from "./util/store-tokens.utils";
+import TokenStore from "./util/tokens-store.utils";
 
 configDotenv({ quiet: true });
 
@@ -25,7 +25,7 @@ Yargs(hideBin(process.argv))
 
             const { access_token, refresh_token, data } = await AuthAPI.login(token.data.interval, token.data.device_code) as LoginRequest;
 
-            await TokenStore(access_token, refresh_token)
+            await TokenStore.store(access_token, refresh_token)
             
             console.log("Logged in as ", data.username);
         }
@@ -51,7 +51,7 @@ Yargs(hideBin(process.argv))
                 return console.log("Session Expired please Login");
             }
 
-            await TokenStore(new_access, new_refresh);
+            await TokenStore.store(new_access, new_refresh);
 
             return console.log("Logged in as @", data.username);
         }

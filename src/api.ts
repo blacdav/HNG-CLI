@@ -1,4 +1,5 @@
 import type { LoginRequest } from "./types/auth.types";
+import TokenStore from "./util/tokens-store.utils";
 
 export default class AuthAPI {
     static async getDeviceCode(): Promise<LoginRequest> {
@@ -76,25 +77,24 @@ export default class AuthAPI {
         }
     }
 
-    static async logout(access_token: string) {
+    static async logout(access_token: string): Promise<void | LoginRequest> {
         // Implement logout logic here, such as clearing tokens or session data
-        try {
-            const reqt = await fetch(`${process.env.API_URL}/api/auth/logout`, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${access_token}`,
-                    "Content-Type": "application/json"
-                }
-            });
+        // const reqt = await fetch(`${process.env.API_URL}/api/auth/logout`, {
+        //     method: "GET",
+        //     headers: {
+        //         "Authorization": `Bearer ${access_token}`,
+        //         "Content-Type": "application/json"
+        //     }
+        // });
 
-            if (!reqt.ok) {
-                throw new Error(`Failed to fetch user information: ${reqt.statusText}`);
-            }
+        // if (!reqt.ok) {
+        //     throw new Error(`Failed to fetch user information: ${reqt.statusText}`);
+        // }
 
-            return await reqt.json();
-        } catch (err) {
-            return err
-        }
+        // return await reqt.json();
+
+        await TokenStore.clear();
+        return;
     }
 
     static async whoami(access_token: string, refresh_token: string) {
