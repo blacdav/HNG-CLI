@@ -76,11 +76,28 @@ export default class AuthAPI {
         }
     }
 
-    static async logout() {
+    static async logout(access_token: string) {
         // Implement logout logic here, such as clearing tokens or session data
+        try {
+            const reqt = await fetch(`${process.env.API_URL}/api/auth/logout`, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${access_token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (!reqt.ok) {
+                throw new Error(`Failed to fetch user information: ${reqt.statusText}`);
+            }
+
+            return await reqt.json();
+        } catch (err) {
+            return err
+        }
     }
 
-    static async whoami(access_token: string) {
+    static async whoami(access_token: string, refresh_token: string) {
         const reqt = await fetch(`${process.env.API_URL}/api/auth/me`, {
             method: "GET",
             headers: {
@@ -89,8 +106,16 @@ export default class AuthAPI {
             }
         });
 
-        if (!reqt.ok) {
-            throw new Error(`Failed to fetch user information: ${reqt.statusText}`);
+        if (!reqt.ok && reqt.status === 401) {
+            const reqt2 = await fetch(`${process.env.API_URL}/api/auth/refresh`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ refresh_token })
+            })
+
+            return await reqt2.json();            
         }
 
         return await reqt.json();

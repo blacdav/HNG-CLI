@@ -18,8 +18,6 @@ export type LoginRequest = {
     status: string;
     message: string;
     data: LoginData;
-    tokens?: {
-        access_token: string;
-        refresh_token: string;
-    };
+    access_token: string;
+    refresh_token: string;
 };

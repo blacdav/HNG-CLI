@@ -6,8 +6,9 @@ import Yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import { configDotenv } from "dotenv";
 import open from "open";
-import AuthAPI from "./api";
+import AuthAPI from "./api";    
 import { LoginRequest } from "./types/auth.types";
+import { TokenStore } from "./util/store-tokens.utils";
 
 configDotenv({ quiet: true });
 
@@ -22,40 +23,37 @@ Yargs(hideBin(process.argv))
 
             await open(token.data.verification_uri);
 
-            const loginResult = await AuthAPI.login(token.data.interval, token.data.device_code);
+            const { access_token, refresh_token, data } = await AuthAPI.login(token.data.interval, token.data.device_code) as LoginRequest;
 
-            if (loginResult) {
-                const token_store = path.join(os.homedir(), ".insighta", "credentials.json");
-
-                fs.mkdirSync(path.dirname(token_store), { recursive: true });
-
-                fs.writeFileSync(token_store, JSON.stringify(loginResult.tokens));
-
-                console.log("Logged in as ", loginResult.data.username);
-            } else {
-                console.log("Login failed or was cancelled.");
-            }
+            await TokenStore(access_token, refresh_token)
+            
+            console.log("Logged in as ", data.username);
         }
     )
     .command("logout", "Log out of the system",
         () => {},
         async () => {
-            await AuthAPI.logout();
+            const tokens = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".insighta", "credentials.json"), "utf8"));
+
+            await AuthAPI.logout(tokens.access_tokens);
+
             console.log("You have been logged out.");
         }
     )
     .command("whoami", "Check current logged in user",
         () => {},
         async () => {
-            const tokens = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".insighta", "credentials.json"), "utf8"));
+            const { access_token, refresh_token} = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".insighta", "credentials.json"), "utf8"));
 
-            const user = await AuthAPI.whoami(tokens.access_token) as LoginRequest;
+            const { status, access_token: new_access, refresh_token: new_refresh, data } = await AuthAPI.whoami(access_token, refresh_token) as LoginRequest;
 
-            if (!user) {
-                return user
+            if (!data || status === "error") {
+                return console.log("Session Expired please Login");
             }
 
-            console.log("Logged in as @", user.data.username);
+            await TokenStore(new_access, new_refresh);
+
+            return console.log("Logged in as @", data.username);
         }
     )
     .command("profiles", "Manage profiles query",
@@ -146,7 +144,6 @@ Yargs(hideBin(process.argv))
                         }
                         
                         let reqt;
-                        console.log("args: ", argv)
 
                         if (argv) {
                             reqt = await fetch(`${process.env.API_URL}/api/profiles?${query}`, {
