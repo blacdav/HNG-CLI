@@ -23,9 +23,9 @@ Yargs(hideBin(process.argv))
 
             await open(token.data.verification_uri);
 
-            const { access_token, refresh_token, data } = await AuthAPI.login(token.data.interval, token.data.device_code) as LoginRequest;
+            const { status, access_token, refresh_token, data } = await AuthAPI.login(token.data.interval, token.data.device_code) as LoginRequest;
 
-            await TokenStore.store(access_token, refresh_token)
+            await TokenStore.store(status, access_token, refresh_token)
             
             console.log("Logged in as ", data.username);
         }
@@ -45,15 +45,13 @@ Yargs(hideBin(process.argv))
         async () => {
             const { access_token, refresh_token} = JSON.parse(fs.readFileSync(path.join(os.homedir(), ".insighta", "credentials.json"), "utf8"));
 
-            const { status, access_token: new_access, refresh_token: new_refresh, data } = await AuthAPI.whoami(access_token, refresh_token) as LoginRequest;
+            const { status, data } = await AuthAPI.whoami(access_token, refresh_token) as LoginRequest;
 
-            if (!data || status === "error") {
+            if (!data && status === "error") {
                 return console.log("Session Expired please Login");
             }
 
-            await TokenStore.store(new_access, new_refresh);
-
-            return console.log("Logged in as @", data.username);
+            return console.log(`Logged in as @${data.username}`);
         }
     )
     .command("profiles", "Manage profiles query",

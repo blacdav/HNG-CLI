@@ -113,11 +113,21 @@ export default class AuthAPI {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({ refresh_token })
-            })
+            });
 
-            return await reqt2.json();            
+            const { status, access_token: new_access, refresh_token: new_refresh, data } = await reqt2.json() as LoginRequest;
+
+            if (!new_access || !new_refresh) {
+                return { status }
+            }
+
+            await TokenStore.store(status, new_access, new_refresh);
+
+            console.log("status", status, new_access);
+
+            return { status, Date };
+        } else {
+            return await reqt.json();
         }
-
-        return await reqt.json();
     }
 }
